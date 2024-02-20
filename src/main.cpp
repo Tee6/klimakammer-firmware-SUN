@@ -235,4 +235,8 @@ void setup()
 
 void loop()
 {
+  setMUXPins(25);
+  Serial.println(digitalRead(MUX_SELECT_PIN_0));
+  Serial.println(digitalRead(MUX_SELECT_PIN_1));
+  Serial.println(digitalRead(MUX_SELECT_PIN_2));
 }
