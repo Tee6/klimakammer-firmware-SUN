@@ -3,6 +3,7 @@
 
 const char I2C_ADDR = 0x55; // Set to desired i2c-adress
 #undef DEBUG                // Define for various debug outputs (#undef to disable) - !!!ENABLING SLOWS DOWN CODE SIGNIFICANTLY!!!
+char module = 0;
 
 #define Module1 0x12
 #define Module2 0x13
@@ -99,7 +100,7 @@ void sendData(float data1 = 0, float data2 = 0)
   // Iterate throught the adresses of the pointer, to read the bytes of the float, and send them via i2c
   for (uint8_t i = 0; i < sizeof(float); ++i)
   {
-    Wire.write((*bytePointer1));
+    Wire1.write((*bytePointer1));
     bytePointer1++;
   }
 
@@ -109,7 +110,7 @@ void sendData(float data1 = 0, float data2 = 0)
   // Iterate throught the adresses of the pointer, to read the bytes of the float, and send them via i2c
   for (uint8_t i = 0; i < sizeof(float); ++i)
   {
-    Wire.write((*bytePointer2));
+    Wire1.write((*bytePointer2));
     bytePointer2++;
   }
 }
@@ -143,10 +144,9 @@ void onRequest()
 { // Code to execute when master requests data from the slave
 #ifdef DEBUG
   Serial.println("OnRequest");
-  Serial.println(Wire.peek());
+  Serial.println(Wire1.peek());
   blink();
 #endif
-  char module = Wire.read(); // Read from which sensor/module the master wants data
   switch (module)
   {
   case Module1:
@@ -183,8 +183,12 @@ void onReceive(int len)
   blink();
 #endif
   // Code to execute when master sends data to the slave
-  char module = Wire.read(); // Read from which sensor/module the master wants to change
-  char data = Wire.read();   // Read the data the master wants to send
+  module = Wire1.read(); // Read from which sensor/module the master wants to change
+  if (!Wire1.available())
+  {
+    return;
+  }
+  char data = Wire1.read(); // Read the data the master wants to send
   setMUXPins(data);
 
   switch (module)
@@ -215,7 +219,7 @@ void onReceive(int len)
     break;
   }
 }
-
+volatile int data = 0;
 void setup()
 {
 // put your setup code here, to run once:
@@ -228,15 +232,22 @@ void setup()
   pinMode(MUX_SELECT_PIN_1, OUTPUT);
   pinMode(MUX_SELECT_PIN_2, OUTPUT);
 
-  Wire.onReceive(onReceive);     // Function to be called when a master sends data to the slave
-  Wire.onRequest(onRequest);     // Function to be called when a master requests data from the slave
-  Wire.begin((uint8_t)I2C_ADDR); // Register this device as a slave on the i2c-bus (on bus 0)
+  Wire1.setSDA(10);               // Set the SDA pin for Wire1
+  Wire1.setSCL(11);               // Set the SCL pin for Wire1
+  Wire1.onReceive(onReceive);     // Function to be called when a master sends data to the slave
+  Wire1.onRequest(onRequest);     // Function to be called when a master requests data from the slave
+  Wire1.begin((uint8_t)I2C_ADDR); // Register this device as a slave on the i2c-bus (on bus 0)
 }
 
 void loop()
 {
-  setMUXPins(25);
+  Serial.println("start");
+  Serial.println(data);
+  setMUXPins(data);
+  delay(500);
   Serial.println(digitalRead(MUX_SELECT_PIN_0));
   Serial.println(digitalRead(MUX_SELECT_PIN_1));
   Serial.println(digitalRead(MUX_SELECT_PIN_2));
+  Serial.println("End");
+  data += 1;
 }
